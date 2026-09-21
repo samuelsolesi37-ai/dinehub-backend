@@ -65,22 +65,13 @@ class GeoapifyService
         |--------------------------------------------------------------------------
         | Geoapify request
         |--------------------------------------------------------------------------
-        |
-        | filter = geographical search area
-        | bias   = prioritize places close to the selected location
-        | name   = search term entered by the user
-        |
         */
 
         $params = [
             'categories' => $categories,
-
             'filter' => "circle:{$lng},{$lat},{$radius}",
-
             'bias' => "proximity:{$lng},{$lat}",
-
             'limit' => 50,
-
             'apiKey' => $apiKey,
         ];
 
@@ -155,8 +146,7 @@ class GeoapifyService
                 $categories = $properties['categories'] ?? [];
 
                 /*
-                | Geoapify's place ID is used as DineHub's
-                | external restaurant identifier.
+                | Geoapify place ID.
                 */
 
                 $placeId = $properties['place_id'] ?? null;
@@ -235,10 +225,6 @@ class GeoapifyService
                     |--------------------------------------------------------------------------
                     | Photos
                     |--------------------------------------------------------------------------
-                    |
-                    | Geoapify does not guarantee a photo for every place.
-                    | Return an empty array when none is available.
-                    |
                     */
 
                     'photos' => $this->extractPhotos($properties),
@@ -253,10 +239,7 @@ class GeoapifyService
     /**
      * Get details for a single Geoapify place.
      *
-     * This method is intentionally named "details"
-     * because RestaurantController calls:
-     *
-     * $this->geoapify->details($fsqId)
+     * Uses the Geoapify Place Details API.
      */
     public function details(string $placeId): ?array
     {
@@ -268,10 +251,26 @@ class GeoapifyService
             );
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | Geoapify Place Details request
+        |--------------------------------------------------------------------------
+        |
+        | IMPORTANT:
+        | The correct endpoint is:
+        |
+        | https://api.geoapify.com/v2/place-details
+        |
+        | NOT:
+        |
+        | https://api.geoapify.com/v2/places/details
+        |
+        */
+
         $response = Http::timeout(20)
             ->acceptJson()
             ->get(
-                $this->baseUrl . '/details',
+                'https://api.geoapify.com/v2/place-details',
                 [
                     'id' => $placeId,
                     'apiKey' => $apiKey,
@@ -287,11 +286,19 @@ class GeoapifyService
         if ($response->failed()) {
             throw new RuntimeException(
                 'Geoapify details request failed: ' .
-                $response->status()
+                $response->status() .
+                ' - ' .
+                $response->body()
             );
         }
 
         $data = $response->json();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Get first feature
+        |--------------------------------------------------------------------------
+        */
 
         $feature = $data['features'][0] ?? null;
 
@@ -305,9 +312,25 @@ class GeoapifyService
 
         $coordinates = $geometry['coordinates'] ?? [];
 
-        $lat = $coordinates[1] ?? 0;
+        /*
+        |--------------------------------------------------------------------------
+        | Coordinates
+        |--------------------------------------------------------------------------
+        */
 
-        $lng = $coordinates[0] ?? 0;
+        $lat = $coordinates[1]
+            ?? $properties['lat']
+            ?? 0;
+
+        $lng = $coordinates[0]
+            ?? $properties['lon']
+            ?? 0;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Return normalized restaurant data
+        |--------------------------------------------------------------------------
+        */
 
         return [
 
