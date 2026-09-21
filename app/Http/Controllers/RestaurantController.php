@@ -143,23 +143,23 @@ class RestaurantController extends Controller
     }
 
     /**
-     * Return DineHub's highest-rated restaurants.
-     *
-     * Only restaurants that already have DineHub reviews
-     * are included here.
-     */
-    public function topRated(): JsonResponse
-    {
-        $restaurants = Restaurant::withAvg('reviews', 'rating')
-            ->withCount('reviews')
-            ->having('reviews_count', '>', 0)
-            ->orderByDesc('reviews_avg_rating')
-            ->limit(6)
-            ->get();
+ * Return DineHub's highest-rated restaurants.
+ *
+ * Only restaurants that already have DineHub reviews
+ * are included here.
+ */
+public function topRated(): JsonResponse
+{
+    $restaurants = Restaurant::withAvg('reviews', 'rating')
+        ->withCount('reviews')
+        ->whereHas('reviews')
+        ->orderByDesc('reviews_avg_rating')
+        ->limit(6)
+        ->get();
 
-        return response()->json([
-            'success' => true,
-            'data' => $restaurants,
-        ]);
-    }
+    return response()->json([
+        'success' => true,
+        'data' => $restaurants,
+    ]);
+}
 }
