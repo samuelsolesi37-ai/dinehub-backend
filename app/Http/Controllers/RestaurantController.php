@@ -7,6 +7,7 @@ use App\Services\GeoapifyService;
 use App\Services\MapillaryService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 use Exception;
 
 class RestaurantController extends Controller
@@ -49,10 +50,16 @@ class RestaurantController extends Controller
                 'data' => $results,
             ]);
       } catch (Exception $e) {
+    Log::error('DineHub restaurant details failed', [
+        'fsq_id' => $fsqId,
+        'message' => $e->getMessage(),
+        'trace' => $e->getTraceAsString(),
+    ]);
+
     return response()->json([
         'success' => false,
         'message' => 'Unable to load restaurant details.',
-        'error' => $e->getMessage(),
+        'error' => null,
     ], 502);
 }
     }
