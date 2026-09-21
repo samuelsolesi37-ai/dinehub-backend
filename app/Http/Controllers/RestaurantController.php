@@ -1,4 +1,4 @@
-```php
+
 <?php
 
 namespace App\Http\Controllers;
@@ -71,13 +71,6 @@ class RestaurantController extends Controller
     {
         $restaurant = Restaurant::where('fsq_id', $fsqId)->first();
 
-        /*
-        |--------------------------------------------------------------------------
-        | If restaurant isn't already stored locally,
-        | get its information from Geoapify.
-        |--------------------------------------------------------------------------
-        */
-
         if (!$restaurant) {
             try {
                 $data = $this->geoapify->details($fsqId);
@@ -117,12 +110,9 @@ class RestaurantController extends Controller
             }
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Mapillary street images
-        |--------------------------------------------------------------------------
-        */
-
+        /**
+         * Mapillary street images.
+         */
         $nearbyImages = [];
 
         if ($restaurant->lat !== null && $restaurant->lng !== null) {
@@ -137,17 +127,13 @@ class RestaurantController extends Controller
                     'message' => $e->getMessage(),
                 ]);
 
-                // Keep the restaurant page working even if Mapillary fails.
                 $nearbyImages = [];
             }
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Ratings and reviews
-        |--------------------------------------------------------------------------
-        */
-
+        /**
+         * Ratings and reviews.
+         */
         $payload = $restaurant->toArray();
 
         $payload['rating'] = round(
@@ -186,4 +172,3 @@ class RestaurantController extends Controller
         ]);
     }
 }
-```
