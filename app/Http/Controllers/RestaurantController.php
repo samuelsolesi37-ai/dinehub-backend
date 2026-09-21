@@ -48,13 +48,13 @@ class RestaurantController extends Controller
                 'success' => true,
                 'data' => $results,
             ]);
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unable to search restaurants at the moment.',
-                'error' => config('app.debug') ? $e->getMessage() : null,
-            ], 502);
-        }
+       } catch (Exception $e) {
+    return response()->json([
+        'success' => false,
+        'message' => 'Unable to load restaurant details.',
+        'error' => $e->getMessage(),
+    ], 502);
+}
     }
 
     /**
