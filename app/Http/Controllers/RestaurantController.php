@@ -1,3 +1,4 @@
+```php
 <?php
 
 namespace App\Http\Controllers;
@@ -49,19 +50,18 @@ class RestaurantController extends Controller
                 'success' => true,
                 'data' => $results,
             ]);
-      } catch (Exception $e) {
-    Log::error('DineHub restaurant details failed', [
-        'fsq_id' => $fsqId,
-        'message' => $e->getMessage(),
-        'trace' => $e->getTraceAsString(),
-    ]);
+        } catch (Exception $e) {
+            Log::error('DineHub restaurant search failed', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
 
-    return response()->json([
-        'success' => false,
-        'message' => 'Unable to load restaurant details.',
-        'error' => null,
-    ], 502);
-}
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to search restaurants at the moment.',
+                'error' => config('app.debug') ? $e->getMessage() : null,
+            ], 502);
+        }
     }
 
     /**
@@ -103,10 +103,16 @@ class RestaurantController extends Controller
                     'raw_data' => $data,
                 ]);
             } catch (Exception $e) {
+                Log::error('DineHub restaurant details failed', [
+                    'fsq_id' => $fsqId,
+                    'message' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Unable to load restaurant details.',
-                    'error' => config('app.debug') ? $e->getMessage() : null,
+                    'error' => $e->getMessage(),
                 ], 502);
             }
         }
@@ -120,10 +126,20 @@ class RestaurantController extends Controller
         $nearbyImages = [];
 
         if ($restaurant->lat !== null && $restaurant->lng !== null) {
-            $nearbyImages = $this->mapillary->near(
-                (float) $restaurant->lat,
-                (float) $restaurant->lng
-            );
+            try {
+                $nearbyImages = $this->mapillary->near(
+                    (float) $restaurant->lat,
+                    (float) $restaurant->lng
+                );
+            } catch (Exception $e) {
+                Log::warning('DineHub Mapillary request failed', [
+                    'restaurant_id' => $restaurant->id,
+                    'message' => $e->getMessage(),
+                ]);
+
+                // Keep the restaurant page working even if Mapillary fails.
+                $nearbyImages = [];
+            }
         }
 
         /*
@@ -150,23 +166,24 @@ class RestaurantController extends Controller
     }
 
     /**
- * Return DineHub's highest-rated restaurants.
- *
- * Only restaurants that already have DineHub reviews
- * are included here.
- */
-public function topRated(): JsonResponse
-{
-    $restaurants = Restaurant::withAvg('reviews', 'rating')
-        ->withCount('reviews')
-        ->whereHas('reviews')
-        ->orderByDesc('reviews_avg_rating')
-        ->limit(6)
-        ->get();
+     * Return DineHub's highest-rated restaurants.
+     *
+     * Only restaurants that already have DineHub reviews
+     * are included here.
+     */
+    public function topRated(): JsonResponse
+    {
+        $restaurants = Restaurant::withAvg('reviews', 'rating')
+            ->withCount('reviews')
+            ->whereHas('reviews')
+            ->orderByDesc('reviews_avg_rating')
+            ->limit(6)
+            ->get();
 
-    return response()->json([
-        'success' => true,
-        'data' => $restaurants,
-    ]);
+        return response()->json([
+            'success' => true,
+            'data' => $restaurants,
+        ]);
+    }
 }
-}
+```
