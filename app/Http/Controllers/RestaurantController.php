@@ -48,7 +48,7 @@ class RestaurantController extends Controller
                 'success' => true,
                 'data' => $results,
             ]);
-       } catch (Exception $e) {
+      } catch (Exception $e) {
     return response()->json([
         'success' => false,
         'message' => 'Unable to load restaurant details.',
